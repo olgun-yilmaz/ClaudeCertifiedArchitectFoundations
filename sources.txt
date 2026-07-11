@@ -1,3 +1,7 @@
 https://claudecertificationguide.com/mock-exam
 https://everpath-course-content.s3-accelerate.amazonaws.com/instructor%2F8lsy243ftffjjy1cx9lm3o2bw%2Fpublic%2F1773274827%2FClaude+Certified+Architect+%E2%80%93+Foundations+Certification+Exam+Guide.pdf
 https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request
+
+------------------
+konu anlatım: https://www.anthropiccertifications.com/courses/claude-certified-architect-foundations
+soru bankası: https://claudecertified.io/practice/mock-exam
