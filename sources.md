@@ -2,7 +2,7 @@
 
 1. 🌐 [Anthropic Certifications - Claude Certified Architect Foundations Course (Recommended)](https://www.anthropiccertifications.com/courses/claude-certified-architect-foundations) 
 
-2. 📕 [Claude Certified Architect Foundations Certification Exam Guide PDF](https://everpath-course-content.s3-accelerate.amazonaws.com/instructor%2F8lsy243ftffjjy1cx9lm3o2bw%2Fpublic%2F1773274827%2FClaude+Certified+Architect+%E2%80%93+Foundations+Certification+Exam+Guide.pdf)  
+2. 📕 [Claude Certified Architect Foundations Certification Exam Guide PDF](https://everpath-course-content.s3-accelerate.amazonaws.com/instructor%2F6nizmqk8tpzpfjvt6qmmav7rh%2Fpublic%2F1783542750%2FClaude+Certified+Architect+%E2%80%93+Foundations+Exam+Guide.pdf)  
 
 ---
 
