@@ -1,0 +1,24 @@
+#!/bin/sh
+# Regenerate GeneratedExams/manifest.json from disk before every commit, so a
+# hand-edited or corrupted manifest can never be committed as-is. Blocks the
+# commit once if a fix was needed (the fix is auto-staged); re-run `git commit`.
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found on PATH, skipping manifest.json sync check" >&2
+  exit 0
+fi
+
+if [ ! -f scripts/sync-manifest.js ]; then
+  exit 0
+fi
+
+node scripts/sync-manifest.js > /dev/null
+
+if ! git diff --quiet -- ExamGenerator/GeneratedExams/manifest.json; then
+  git add ExamGenerator/GeneratedExams/manifest.json
+  echo "manifest.json was out of sync with GeneratedExams/ — corrected and re-staged."
+  echo "Review the change, then run 'git commit' again."
+  exit 1
+fi
+
+exit 0
