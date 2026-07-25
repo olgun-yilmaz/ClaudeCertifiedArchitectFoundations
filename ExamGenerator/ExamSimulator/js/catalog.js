@@ -67,5 +67,9 @@ export function initPicker() {
     openList();
   });
   els.search.addEventListener("keydown", function (e) { if (e.key === "Escape") closeList(); });
+  els.toggle.addEventListener("click", function () {
+    if (els.list.hidden) { renderList(catalog); openList(); els.search.focus(); }
+    else { closeList(); }
+  });
   document.addEventListener("click", function (e) { if (!els.picker.contains(e.target)) closeList(); });
 }

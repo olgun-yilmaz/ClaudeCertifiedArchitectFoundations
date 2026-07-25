@@ -433,7 +433,7 @@ function renderResultsView() {
       '<button class="btn btn-primary" id="saveFileBtn">Save to file…</button>' +
       '<span class="save-status" id="saveStatus"></span>' +
     "</div>" +
-    '<div class="save-hint">The report below matches the format used across <code>Exams/</code>. ' +
+    '<div class="save-hint">The report below is the canonical <code>result.md</code> format. ' +
       "It's saved automatically to <code>GeneratedExams/" + escapeHtml(state.examId) + "/result.md</code> " +
       "when the exam finishes (Chrome/Edge only — first time you'll be asked to grant access to the " +
       "<code>GeneratedExams</code> folder). Use “Save to file…” to save it again manually if needed; " +

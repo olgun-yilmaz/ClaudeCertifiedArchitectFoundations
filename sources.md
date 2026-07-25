@@ -10,7 +10,7 @@
 
 1. ❔ [Claude Certified - Mock Exam (Easy-AI generated)](https://claudecertified.io/practice/mock-exam) 
 2. ❓ [Claude Certification Guide - Mock Exam (Medium)](https://claudecertificationguide.com/mock-exam)
-4. ⁉️ [CertSafari Mock Exam (Hard)](https://www.certsafari.com/anthropic/quiz/claude-certified-architect) 
+4. ❓ [CertSafari Mock Exam (Medium)](https://www.certsafari.com/anthropic/quiz/claude-certified-architect) 
 5. ⁉️ [Cyberskill Mock Exam (Extra Hard-Recommended before exam)](https://ccaf.cyberskill.world/) 
 
 ---

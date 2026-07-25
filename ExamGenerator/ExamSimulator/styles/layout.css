@@ -29,12 +29,30 @@ header.app-header {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   color: var(--text);
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem 1.9rem 0.5rem 0.7rem;
   font-size: 0.9rem;
   font-family: var(--font-sans);
 }
 
 .exam-picker input::placeholder { color: var(--text-dim); }
+
+.exam-picker .picker-toggle {
+  position: absolute;
+  top: 0; bottom: 0; right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.exam-picker .picker-toggle svg { transition: transform 0.15s ease; }
+
+.exam-picker[aria-expanded="true"] .picker-toggle svg { transform: rotate(180deg); }
 
 .exam-picker ul {
   position: absolute;

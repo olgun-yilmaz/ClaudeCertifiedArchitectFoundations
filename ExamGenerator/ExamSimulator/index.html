@@ -17,6 +17,9 @@
     <div class="brand"><strong>CCAR-F</strong> Practice Console</div>
     <div class="exam-picker" role="combobox" aria-haspopup="listbox" aria-expanded="false" aria-owns="examList">
       <input id="examSearch" type="text" placeholder="Search exams…" autocomplete="off" aria-autocomplete="list" aria-controls="examList" />
+      <button type="button" id="examToggle" class="picker-toggle" tabindex="-1" aria-label="Toggle exam list">
+        <svg viewBox="0 0 12 8" width="12" height="8" aria-hidden="true"><path d="M1 1.5 6 6.5 11 1.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <ul id="examList" role="listbox" hidden></ul>
     </div>
     <div class="topbar-actions">

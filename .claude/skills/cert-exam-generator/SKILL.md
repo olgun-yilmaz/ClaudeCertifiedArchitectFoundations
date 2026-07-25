@@ -1,7 +1,7 @@
 ---
 name: cert-exam-generator
 description: Generate an original Claude Certified Architect – Foundations (CCAR-F) practice exam into ExamGenerator/GeneratedExams/<id>/ (exam.md + answer-key.md) and register it in manifest.json. Scenario-based, single-best-answer, real-exam-caliber questions grounded in this repo's Notes and Cheat Sheets. Use when asked to create/generate a new practice exam or add exam questions.
-allowed-tools: Read, Write, Edit, Glob, Grep
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ---
 
 # CCAR-F Exam Generator
@@ -16,10 +16,14 @@ Use this skill when the user asks to create, generate, or add to a CCAR-F practi
 
 ## Parameters (read from the conversation)
 
-Take the exam's parameters from what the user has said. **Do not** run a fixed question-and-answer wizard, and **do not** assume a default exam size or domain mix.
+Take the exam's parameters from what the user has said. **Never assume** a default exam size or domain mix — but equally, never ask about something the user already specified. Ask only for what's actually missing, once, then generate.
 
-- **count** — how many questions. Required. If the user hasn't given it, ask once, briefly, in plain conversation.
-- **scope** — which domains/subtopics to cover, and in what proportion. If the user hasn't indicated any scope, ask once whether they want a specific domain/subtopic focus or a weighted spread across all five domains (see weightings below), then proceed.
+When either **count** or **scope** is absent from the conversation, ask for the missing ones in a single `AskUserQuestion` call (one question per missing parameter, so the user answers both in one pass):
+
+- **count** — how many questions. Required. Offer `20` (short practice exam), `40` (medium-length), `60` (full-length, matching real exam size), and let the user type any other number.
+- **scope** — which domains/subtopics to cover, and in what proportion. Offer a weighted spread across all five domains (recommended — proportional to the blueprint weightings below) or a custom domain/subtopic focus. If they pick a custom focus without naming it, ask which domain or subtopic.
+
+If the user already gave both (e.g. *"make me a 30-question exam on D2 and D3"*), ask nothing at all — go straight to generating.
 - **id** — the exam folder id. Optional; if not given, choose it per the workflow below.
 - **difficulty / theme** — honor any the user states (e.g. "focus on the trickier D1 orchestration cases", "all six scenario families"). Default to real-exam difficulty regardless.
 
@@ -207,6 +211,6 @@ Strengthen distractors with **real but misapplied** Claude Code / API vocabulary
 ## Guardrails
 
 - English only.
-- Touch only the target exam's folder, and `manifest.json` only via `node scripts/sync-manifest.js` (never Edit it directly). Do not modify other exams, `_sample`, `ExamSimulator/`, or the formats. Leave the empty `1/` folder's meaning intact unless you are deliberately filling it as the chosen target.
+- Touch only the target exam's folder, and `manifest.json` only via `node scripts/sync-manifest.js` (never Edit it directly). Do not modify other exams, `_sample`, `ExamSimulator/`, or the formats.
 - Do not add this skill or the generated exam to `skills-lock.json` (that lockfile is only for GitHub-sourced skills).
 - If the requested scope isn't covered by the notes, say so rather than inventing out-of-scope material.

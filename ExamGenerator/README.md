@@ -16,16 +16,39 @@ ExamGenerator/
     ├── <id>/
     │   ├── exam.md          Questions
     │   ├── answer-key.md    Correct answers + per-option rationale + sources
-    │   └── result.md        Saved result report (written from the simulator after a run)
+    │   └── result.md        Saved run — written by the simulator, read back as the review
+    │                          screen, and gitignored (personal scores stay local)
     └── _sample/             Format reference — registered in manifest.json like any other id,
                               so it's also browsable/selectable in the simulator
 ```
 
 ## The simulator (`ExamSimulator/`)
 
-Self-contained, no build step (ES modules loaded from `index.html`). Once an exam is picked it presents **one scenario card at a time** — never a long scroll — with a **side navigator** (numbered chips) to jump to or skip any question. Each card's badge shows the precise section: `Q<n> · D<domain> · <subtopic> <name> · q-<d>-<s>-<nnn> · <scenario>`.
+Self-contained, no build step: `index.html` loads ES modules directly, and the only runtime requirement is a static file server. There are no dependencies to install and nothing to compile.
 
-On **Finish**, a results screen shows a domain-weighted score out of **1000** with a **PASS/FAIL** verdict (pass mark 72% → 720/1000) and a per-domain breakdown, then lets you review every missed question with per-option explanations and its source lessons. See "Scoring" and "Saving results" below.
+### Opening an exam
+
+`selectExam()` in `exam.js` is the entry point for every exam, and it branches on a single question — does a saved result exist?
+
+```
+selectExam(id)
+  └─ fetch("<id>/result.md")
+       ├─ 200 → state.view = "saved-result"   (parse the file, render the review)
+       └─ 404 → showModeModal(id)             (no result yet, so start fresh)
+```
+
+There is no separate record of which exams you've attempted. The file's existence *is* that record, which is why **Retake** is implemented as `deleteSavedResult(id)` followed by re-opening the mode prompt — remove the artifact and the probe misses again. It also means you can hand an exam back to a clean state by deleting one file, and that copying a `result.md` into a folder is enough to make the simulator render it.
+
+### Practice modes
+
+When no saved result exists, the mode prompt decides **when the answer key is fetched** — not what gets scored:
+
+![The practice-mode modal: Review or Timed](../Screenshots/ExamModePicker.png)
+
+- **Review** (default) — `startFreshExam()` eagerly fetches `answer-key.md` before rendering, because feedback has to be available the moment you commit to an answer. Confirming a question grades it immediately, and the running tally in the header is computed from the same `isCorrect()` used for the final score. Confirming the last unanswered question finishes the exam.
+- **Timed** — the key is *not* fetched. `finishExam()` requests it lazily at the end, so for the entire duration of a timed run the browser has never downloaded the correct answers. Timer length is derived rather than configured: `questionCount × 2 minutes`, so exam length scales itself. Expiry calls `finishExam(true)`, which skips the unanswered-questions confirmation and submits as-is.
+
+Both modes score identically — unanswered questions count as incorrect, matching the real exam's no-penalty-for-guessing rule — and both write the same `result.md`. Flags are navigation aids only and never enter scoring.
 
 ### Module layout
 
@@ -48,7 +71,7 @@ To write an exam by hand instead, copy `_sample/` and follow the formats below, 
 
 ## Domain taxonomy
 
-Fixed, matches the rest of the repo (`Notes/`, `Exams/`) and the real CCAR-F weightings:
+Fixed, matches the rest of the repo (`Notes/`) and the real CCAR-F weightings:
 
 | # | Domain | Weight |
 |---|--------|--------|
@@ -181,13 +204,33 @@ Rules:
 
 Scoring is domain-weighted and scaled to **1000 points**. Each domain present in the exam contributes `1000 × weight / (sum of present weights)` points, earned in proportion to the fraction correct in that domain. With all five domains present the maxima are 270 / 180 / 200 / 200 / 150. The **pass mark is 72%** (720 / 1000). Domains with no questions in an exam are excluded and the remaining weights renormalize.
 
+Because the score is renormalized over the domains actually present, a single-domain drill still reports out of 1000 — the number stays comparable to the real exam's cut score no matter how narrow the exam is.
+
+![The results screen: score, verdict, and per-domain breakdown](../Screenshots/ResultScreen.png)
+
+## Reviewing answers
+
+Review is driven by the answer key's per-option fields, so the reviewable unit is the *option*, not the question: every choice carries its own rationale, including the ones you rejected. That's the difference between learning why you were wrong and learning why the distractor was tempting.
+
+![A missed question expanded, with per-option rationale and its source lesson](../Screenshots/QuestionstoReview.png)
+
+Two constraints follow from this and are easy to break by accident:
+
+- **Raw choice text and rationale must stay separate.** Each option renders its verbatim text from `exam.md`; the `Why-<letter>:` line from `answer-key.md` is revealed on demand. Folding a rationale into the choice text — in `answer-key.md` or in a hand-edited `result.md` — collapses the two and the per-option reveal stops working.
+- **Sources are the audit trail.** The `Source:` lines become the "where this comes from" reference, tying the question back to the note that justifies its answer. The generator skill treats an unsourceable question as one that shouldn't ship, so a missing source is a signal, not a cosmetic gap.
+
+The same renderer serves a live post-exam review and a `result.md` reopened weeks later — the saved report is parsed back into the identical view, so nothing is lost by closing the tab.
+
 ## Saving results
 
-The results screen renders a `result.md` report matching the format used across `Exams/` (per-domain `(x/y)` breakdown with a green blockquote for perfect domains, each missed question expanded with per-option explanations and its sources, then a `# RESULT` score table — see `result.md` format above for the exact shape). Three ways to save it into `GeneratedExams/<id>/result.md`:
+When a run finishes, `autoSaveResult()` writes the report to `GeneratedExams/<id>/result.md` through the File System Access API. The directory handle you grant is persisted in IndexedDB (`examgen-fs` → `handles` → `genExamsDir`) and its permission re-verified on later visits, so authorization is a one-time step per browser rather than per run.
 
-- **Copy report** — copies the markdown to the clipboard.
-- **Download result.md** — downloads the file (move it into the exam folder).
-- **Save to file…** — in Chrome/Edge on localhost, uses the File System Access API to write the file directly; pick `GeneratedExams/<id>/result.md`.
+This only works in Chromium-based browsers on localhost. Elsewhere the write fails loudly rather than silently, and two format-identical fallbacks stay available: **Copy report** (clipboard) and **Download result.md** (drop it into the exam folder yourself). **Save to file…** re-runs the picker if you want to write it again manually.
+
+Two consequences worth stating plainly:
+
+- **Saved results are gitignored.** `.gitignore` excludes `GeneratedExams/*/result.md`, so your scores never enter version control. The one negated exception is `_sample/result.md`, kept because it is the synthetic worked example this document's format contract points at.
+- **On browsers without the API, retake is a no-op.** `deleteSavedResult()` resolves without doing anything when `showDirectoryPicker` is absent. In practice that's consistent — such a browser could never have autosaved a result either — but if you manually placed a `result.md`, you'll need to delete it manually too.
 
 ## Running the simulator
 

@@ -1,8 +1,70 @@
 # Claude Certified Architect – Foundations (CCAR-F)
 
-A personal study kit for the **[Claude Certified Architect – Foundations](https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request)** exam by Anthropic. It brings together everything used to prepare in one place: condensed domain notes, a fast-recall cheat sheet, recorded mock-exam attempts with per-question reviews, and a self-contained browser-based exam simulator with a matching practice-exam generator.
+An original practice-exam **generator** and **simulator** for the **[Claude Certified Architect – Foundations](https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request)** exam by Anthropic. A Claude Code skill authors question sets from a corpus of domain notes; a zero-build browser app delivers and scores them. Everything in the loop is a plain markdown file in this repo — there is no database, no backend, and no build step.
 
-The certification measures the ability to design production systems with Claude — agentic loops, tool/MCP design, Claude Code workflows, prompt engineering, and context/reliability management.
+![The CCAR-F Practice Console mid-exam](Screenshots/ExamSimulator.png)
+
+## How it works
+
+The whole system is a file pipeline. Markdown is both the authoring format and the storage layer:
+
+```
+Notes/ + Data/  ──skill──▶  GeneratedExams/<id>/exam.md
+                            GeneratedExams/<id>/answer-key.md
+                                     │
+                       sync-manifest.js derives manifest.json
+                                     │
+                            ExamSimulator fetches it
+                                     │
+                            GeneratedExams/<id>/result.md  (gitignored)
+```
+
+The design decisions worth knowing before reading the code:
+
+- **Questions and answers are separate files on purpose.** `exam.md` carries the stem, domain, subtopic, and choices; `answer-key.md` carries correctness, per-option rationale, and source lessons. Nothing is duplicated, and the two are cross-referenced by `Q<n>`. This split is what makes timed mode leak-proof — the simulator can render a whole exam without ever fetching the key, and does exactly that until you finish.
+- **`manifest.json` is a directory listing, not a config file.** Browsers can't enumerate a folder over `fetch()`, so the picker needs a manifest to know what exists. It's derived from disk by `scripts/sync-manifest.js` (a folder counts only if it contains an `exam.md`), never hand-edited, and a tracked pre-commit hook blocks any commit where it has drifted. That's why a freshly generated exam is selectable immediately: the skill writes the folder, then regenerates the index.
+- **`result.md` is the state store.** There's no progress database. Opening an exam does a `fetch()` probe for its `result.md`: found → your saved report is parsed back into a full review screen; not found → you get the mode prompt and start fresh. The presence of a file *is* the "already taken" flag. Consequently **Retake** doesn't reset a variable — it deletes the file, and the next probe misses.
+- **Results are written back to the repo, then ignored by it.** A finished run is saved straight into `GeneratedExams/<id>/result.md` via the File System Access API, with the granted directory handle cached in IndexedDB so you authorize once per browser. `.gitignore` excludes those files — personal scores stay local — with a single negation for `_sample/result.md`, which is a synthetic worked example that documents the format.
+- **The report format is a round-trip contract.** `result-md.js` holds both halves: `buildResultMarkdown()` writes the file and `parseResultReport()` reads it back. The shape isn't a report style you can restyle freely; the parser depends on it.
+- **Scoring renormalizes.** Domains contribute weighted shares of 1000 points, but only domains actually present in the exam count — a D1-only drill still scores out of 1000, not out of 270.
+
+## Quick start
+
+Browsers block `fetch()` over `file://` (and ES modules only load over `http(s)`), so serve the folder over any local static server:
+
+```bash
+npx serve ExamGenerator
+# or
+python -m http.server --directory ExamGenerator 5500
+```
+
+Then open the printed localhost URL and load `ExamSimulator/index.html`.
+
+If you want finished runs written back to disk, also enable the pre-commit hook once per clone so a generated exam can never be committed with a stale manifest (git doesn't honor `.githooks/` until pointed there):
+
+```bash
+git config core.hooksPath .githooks
+```
+
+## Generate an exam
+
+Ask Claude — e.g. *"generate exam"* — which triggers the **`cert-exam-generator`** skill (in [`.claude/skills/`](.claude/skills/cert-exam-generator/SKILL.md)). It needs two parameters and asks only for the ones you didn't already give it:
+
+| How many questions? | Which domains? |
+|---|---|
+| ![The skill asking for exam size in Claude Code](Screenshots/ExamSize.png) | ![The skill asking for domain scope in Claude Code](Screenshots/DomainScope.png) |
+
+*(These are the skill's own prompts in Claude Code, not simulator UI.)*
+
+What it then does is mostly bookkeeping in service of one goal — questions that can't be answered without reading them:
+
+1. **Grounds itself.** Reads the notes for the targeted subtopics plus the cheat sheets that encode the exam's answer logic. Every question must trace to a specific subtopic; if the note justifying the correct answer can't be pointed at, the question doesn't ship.
+2. **Picks 4 of the 6 scenario families**, mirroring the real exam, and only pairs a question with a family whose primary domains cover that question's domain.
+3. **Plans before writing** — the subtopic list, the domain counts, and the correct letters are laid out and balanced across A–D up front, then the order is shuffled so the exam doesn't read as domain-by-domain blocks.
+4. **Audits option lengths.** This is the one that matters. The failure mode for generated exams is putting the justification in the correct option and leaving the distractors as bare assertions — which makes "always pick the longest choice" a winning strategy. The skill counts words per option, keeps the longest within ~1.25× the shortest, caps how often the longest option is the correct one, and pushes every "because…" clause into the answer key where it belongs.
+5. **Registers the id** by regenerating `manifest.json` from disk, which is what makes the exam appear in the picker.
+
+File formats, the scoring model, and the manual authoring path are documented in [`ExamGenerator/README.md`](ExamGenerator/README.md).
 
 ## Exam blueprint
 
@@ -22,62 +84,29 @@ The full blueprint — domain weights, the six exam scenarios, and how the exam 
 
 ```
 .
-├── Notes/                    Study material
-│   ├── Anthropic Certifications/   30 lesson notes across the 5 domains (+ annotated screenshots)
-│   └── Cheat Sheet/                Last-minute recall: decision rules, scenario map, wrong-answer patterns
-├── Exams/                    Recorded mock-exam attempts (questions, screenshots, results, reviews)
-│   ├── CertSafari/                 Hard mocks (old + new question banks)
-│   └── Claude Certification Guide/ Full + Quick mocks
-├── ExamGenerator/            Browser-based exam simulator + generated practice exams
+├── ExamGenerator/            The generator's output + the browser simulator
 │   ├── ExamSimulator/              Zero-build ES-module app (index.html + styles/ + js/)
-│   └── GeneratedExams/             Original CCAR-F practice exams (exam.md + answer-key.md)
-├── Data/                     Exam blueprint + official exam guide PDF
+│   └── GeneratedExams/             Practice exams (exam.md + answer-key.md per id)
+├── Notes/                    Grounding corpus the generator draws from
+│   ├── Anthropic Certifications/   30 lesson notes across the 5 domains (+ annotated screenshots)
+│   └── Cheat Sheet/                Decision rules, scenario map, wrong-answer patterns
+├── Data/                     Exam blueprint + the official exam guide PDF
+├── Screenshots/              Images used by the READMEs
+├── .claude/skills/           cert-exam-generator — the authoring skill
 ├── scripts/sync-manifest.js  Regenerates the exam manifest from folders on disk
 ├── .githooks/pre-commit      Blocks commits when the manifest is out of sync
-└── sources.md                Links to the course, mock exams, and the real exam
+└── sources.md                Links to the course and the real exam
 ```
 
-## What's inside
+## Grounding material
 
-### `Notes/` — study material
+The generator is only as good as what it reads. Every question it writes must trace to a specific subtopic in these files — if a claim can't be sourced, the question doesn't ship.
 
-- **Anthropic Certifications** — 30 lesson notes organized by the five domains (`1.1` … `5.6`), each pairing distilled prose with annotated screenshots and explicit **Exam Trap** callouts that name the common distractors.
-- **Cheat Sheet** — fast-recall material for the final stretch: the [core decision rule](<Notes/Cheat Sheet/1-The Exam’s Core Decision Rule.md>), a scenario map, "if you see this, choose that" mappings, top wrong-answer patterns, out-of-scope distractors, and a last-minute memorization list — plus one condensed sheet per domain.
+- **`Notes/Anthropic Certifications/`** — 30 lesson notes organized by the five domains (`1.1` … `5.6`), each pairing distilled prose with annotated screenshots and explicit **Exam Trap** callouts that name the common distractors. These supply the subject matter and the `Source:` references that appear in every answer key.
+- **`Notes/Cheat Sheet/`** — the answer *logic*: the [core decision rule](<Notes/Cheat Sheet/1-The Exam’s Core Decision Rule.md>) for picking between two plausible options, a scenario map, "if you see this, choose that" mappings, the top wrong-answer patterns (which become the distractors), and the out-of-scope topics that may only ever appear as distractors — plus one condensed sheet per domain.
+- **`Data/exam-details.md`** — the blueprint: domain weightings and the six scenario families with their primary domains. The skill picks 4 of the 6 per exam, mirroring the real exam's behavior, and grounds each scenario narrative in these descriptions rather than inventing one.
 
-### `Exams/` — recorded mock attempts
-
-Real practice runs kept as a study record, each with the question set (`exam.md`), result screenshots, and a `personalized-review.md` that traces every miss back to its root cause and the lesson to revisit. Sources include **CertSafari** (hard) and the **Claude Certification Guide** (full + quick) mocks.
-
-### `ExamGenerator/` — simulator + practice exams
-
-A self-contained, no-build exam simulator (ES modules loaded straight from `index.html`) plus a set of original CCAR-F practice exams. It presents one scenario card at a time with a side navigator, then produces a domain-weighted score out of 1000 with a PASS/FAIL verdict and a per-question review with per-option rationale and source lessons. See [`ExamGenerator/README.md`](ExamGenerator/README.md) for the full architecture, file formats, and scoring model.
-
-Run it over a local static server (browsers block `fetch()` over `file://`):
-
-```bash
-npx serve ExamGenerator
-# or
-python -m http.server --directory ExamGenerator 5500
-```
-
-Then open the printed localhost URL and load `ExamSimulator/index.html`.
-
-## Adding a practice exam
-
-Just ask Claude to generate one — e.g. *"generate a new practice exam"*. That triggers the **`cert-exam-generator`** skill (in `.claude/skills/`), which asks at most two things:
-
-1. **How many questions?**
-2. **Which domains — a specific focus, or a weighted spread across all five?**
-
-From there it does everything: authors `exam.md` + `answer-key.md` grounded in the repo's notes, applies the CCAR-F question-quality rubric, registers the id, and regenerates the manifest. The new exam is then selectable in the simulator.
-
-A tracked pre-commit hook keeps `manifest.json` in sync and blocks any commit where it doesn't match the folders on disk. Enable hooks once per clone (git doesn't honor `.githooks/` until pointed there):
-
-```bash
-git config core.hooksPath .githooks
-```
-
-File formats and the manual authoring path are documented in [`ExamGenerator/README.md`](ExamGenerator/README.md).
+Useful on their own as study material, too.
 
 ## Sources
 
@@ -85,4 +114,4 @@ The course, mock-exam providers, and the official exam link are collected in [`s
 
 ---
 
-*Personal study material. Not affiliated with or endorsed by Anthropic; “Claude” and related marks belong to Anthropic. Recorded mock questions belong to their respective providers and are kept here only as a personal study record.*
+*Study material, not affiliated with or endorsed by Anthropic; “Claude” and related marks belong to Anthropic. The lesson notes and screenshots under `Notes/`, the blueprint in `Data/exam-details.md`, and the exam guide PDF derive from Anthropic and third-party course material, and are included here for study reference only. The generated exams in `ExamGenerator/GeneratedExams/` are original work, with the exception of `pdf/`, whose questions come from the official exam guide's own sample section.*

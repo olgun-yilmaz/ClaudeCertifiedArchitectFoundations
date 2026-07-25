@@ -20,6 +20,7 @@ export var els = {
   search: document.getElementById("examSearch"),
   list: document.getElementById("examList"),
   picker: document.querySelector(".exam-picker"),
+  toggle: document.getElementById("examToggle"),
   main: document.getElementById("main"),
   sidebar: document.getElementById("sidebar")
 };
