@@ -1,6 +1,6 @@
 # Claude Certified Architect – Foundations (CCAR-F)
 
-An original practice-exam **generator** and **simulator** for the **[Claude Certified Architect – Foundations](https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request)** exam by Anthropic. A Claude Code skill authors question sets from a corpus of domain notes; a zero-build browser app delivers and scores them. Everything in the loop is a plain markdown file in this repo — there is no database, no backend, and no build step.
+An original practice-exam **generator** and **simulator** for the **[Claude Certified Architect – Foundations](https://anthropic.skilljar.com/claude-certified-architect-foundations-access-request)** exam by Anthropic. A project skill for Claude Code and Codex authors question sets from a corpus of domain notes; a zero-build browser app delivers and scores them. Everything in the loop is a plain markdown file in this repo — there is no database, no backend, and no build step.
 
 ![The CCAR-F Practice Console mid-exam](Screenshots/ExamSimulator.png)
 
@@ -48,13 +48,13 @@ git config core.hooksPath .githooks
 
 ## Generate an exam
 
-Ask Claude — e.g. *"generate exam"* — which triggers the **`cert-exam-generator`** skill (in [`.claude/skills/`](.claude/skills/cert-exam-generator/SKILL.md)). It needs two parameters and asks only for the ones you didn't already give it:
+Ask Claude Code or Codex — e.g. *"generate exam"* — which triggers the **`cert-exam-generator`** skill. The Claude Code definition lives in [`.claude/skills/`](.claude/skills/cert-exam-generator/SKILL.md), while the Codex-compatible definition lives in [`.agents/skills/`](.agents/skills/cert-exam-generator/SKILL.md). It needs two parameters and asks only for the ones you didn't already give it:
 
 | How many questions? | Which domains? |
 |---|---|
 | ![The skill asking for exam size in Claude Code](Screenshots/ExamSize.png) | ![The skill asking for domain scope in Claude Code](Screenshots/DomainScope.png) |
 
-*(These are the skill's own prompts in Claude Code, not simulator UI.)*
+*(These screenshots show the skill's prompts in Claude Code; Codex asks for the same missing parameters. They are not simulator UI.)*
 
 What it then does is mostly bookkeeping in service of one goal — questions that can't be answered without reading them:
 
@@ -92,7 +92,8 @@ The full blueprint — domain weights, the six exam scenarios, and how the exam 
 │   └── Cheat Sheet/                Decision rules, scenario map, wrong-answer patterns
 ├── Data/                     Exam blueprint + the official exam guide PDF
 ├── Screenshots/              Images used by the READMEs
-├── .claude/skills/           cert-exam-generator — the authoring skill
+├── .claude/skills/           Claude Code skill definitions
+├── .agents/skills/           Codex-compatible skill definitions
 ├── scripts/sync-manifest.js  Regenerates the exam manifest from folders on disk
 ├── .githooks/pre-commit      Blocks commits when the manifest is out of sync
 └── sources.md                Links to the course and the real exam
