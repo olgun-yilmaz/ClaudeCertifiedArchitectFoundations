@@ -1,4 +1,4 @@
-# Exam Sample
+# Exam pdf
 
 Title: Sample Questions (from exam guide)
 Total: 12
@@ -65,7 +65,7 @@ D) Begin in direct execution mode and only switch to plan mode if you encounter 
 
 ## Q6
 Domain: 3. Claude Code Configuration & Workflows
-Subtopic: 3.3 Path Specific Rules
+Subtopic: 3.3 Path-Specific Rules
 Scenario: Code Generation with Claude Code
 
 Your codebase has distinct areas with different coding conventions: React components use functional style with hooks, API handlers use async/await with specific error handling, and database models follow a repository pattern. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx), and you want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code?

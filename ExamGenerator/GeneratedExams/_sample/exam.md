@@ -1,4 +1,4 @@
-# Exam Sample
+# Exam _sample
 
 Title: Sample — Format Reference (not a real exam)
 Total: 3
@@ -6,7 +6,7 @@ Total: 3
 ## Q1
 Domain: 1. Agentic Architecture & Orchestration
 Subtopic: 1.7 Session State, Resumption & Forking
-Scenario: 
+Scenario: Code Generation with Claude Code
 
 A development team is breaking a legacy Java monolith into microservices with Claude Code's multi-agent features. Specialist subagents are configured through CLAUDE.md, custom hooks enforce lint rules, and agentic delegation patterns coordinate changes across hundreds of files.
 
@@ -20,7 +20,7 @@ D) Start a fresh session summarising the three failed approaches and why each fa
 ## Q2
 Domain: 5. Context Management & Reliability
 Subtopic: 5.1 Managing Conversation Context
-Scenario: 
+Scenario: Customer Support Resolution Agent
 
 A financial services company is building a customer support agent on Claude. It handles account enquiries and refunds, escalates the tricky cases, and talks to several backend systems through MCP tools.
 
@@ -34,7 +34,7 @@ D) The model needs a higher max_tokens parameter to produce longer responses
 ## Q3
 Domain: 3. Claude Code Configuration & Workflows
 Subtopic: 3.5 Iterative Refinement Techniques
-Scenario: 
+Scenario: Code Generation with Claude Code
 
 A software engineering team uses Claude Code to write, review, and test code in a large TypeScript monorepo: 200+ packages, tests co-located with the source they cover, and several deployment targets.
 

@@ -131,7 +131,7 @@ D) Temporarily disable anomaly_flag while rewriting its criteria with explicit, 
 
 ## Q10
 Domain: 5. Context Management & Reliability
-Subtopic: 5.2 Escalation Ambiguity Resolution
+Subtopic: 5.2 Escalation & Ambiguity Resolution
 Scenario: Structured Data Extraction
 
 A structured data extraction system built on Claude pulls line items, totals, and other fields out of unstructured documents using tool_use with a JSON schema, validates the result, and forwards it to downstream systems that expect high accuracy.

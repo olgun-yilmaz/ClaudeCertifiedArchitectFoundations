@@ -61,13 +61,28 @@ Both modes score identically — unanswered questions count as incorrect, matchi
 
 Ask the `cert-exam-generator` skill (`.claude/skills/cert-exam-generator/`) to generate one — e.g. *"generate a new practice exam"*. It asks at most two things (how many questions, and which domains — a focus or a weighted spread), then writes `GeneratedExams/<id>/exam.md` + `answer-key.md` in the formats below, applies the CCAR-F question-quality rubric, registers the id, and regenerates `manifest.json`.
 
-`manifest.json` is derived, never hand-edited — it exists because browsers can't list a directory over `fetch()`. It's regenerated from disk by `node scripts/sync-manifest.js` (which the skill runs for you). A tracked pre-commit hook (`.githooks/pre-commit`) also runs this and blocks any commit where the manifest doesn't match the folders on disk. One-time setup per clone (git doesn't honor `.githooks/` until you point it there):
+`manifest.json` is derived, never hand-edited — it exists because browsers can't list a directory over `fetch()`. It's regenerated from disk by `node scripts/sync-manifest.js` (which the skill runs for you).
+
+To write an exam by hand instead, copy `_sample/` and follow the formats below, then run:
+
+```
+node scripts/sync-manifest.js     # register the id
+node scripts/validate-exams.js    # check it against the formats below
+```
+
+### Validation
+
+The formats below are a parser contract, and breaking one usually fails quietly — the simulator drops a question, mislabels a domain, or renders a blank scenario badge rather than raising anything. `scripts/validate-exams.js` makes those failures loud: it walks every id in `manifest.json` and checks the header lines, `Total` against the actual question count, sequential `## Q<n>` numbering, domain names against the taxonomy, subtopic ids and their spelling, non-empty `Scenario:` values, exactly four `A)`–`D)` choices, that `exam.md` and `answer-key.md` agree on the question set, and that every `Correct:` letter points at a choice that exists.
+
+Errors exit non-zero. Warnings (single-paragraph stems, partial `Why-` sets, a missing `Source:`, a correct-letter distribution skewed to one letter) are reported but don't fail — pass `--strict` to promote them.
+
+It has no canonical list of subtopic *names* to check against, because the repo doesn't define one; instead it requires that every exam spells a given subtopic id the same way, which catches drift without freezing the wording.
+
+Two things run it for you: `.github/workflows/validate-exams.yml` on every push and pull request, and the tracked pre-commit hook (`.githooks/pre-commit`), which also re-derives `manifest.json` and blocks any commit where it doesn't match the folders on disk. The hook needs one-time setup per clone, since git doesn't honor `.githooks/` until you point it there:
 
 ```
 git config core.hooksPath .githooks
 ```
-
-To write an exam by hand instead, copy `_sample/` and follow the formats below, then run `node scripts/sync-manifest.js`.
 
 ## Domain taxonomy
 
