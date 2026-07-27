@@ -13,6 +13,7 @@ Notes/ + Data/  ──skill──▶  GeneratedExams/<id>/exam.md
                             GeneratedExams/<id>/answer-key.md
                                      │
                        sync-manifest.js derives manifest.json
+                       validate-exams.js checks the format
                                      │
                             ExamSimulator fetches it
                                      │
@@ -23,6 +24,7 @@ The design decisions worth knowing before reading the code:
 
 - **Questions and answers are separate files on purpose.** `exam.md` carries the stem, domain, subtopic, and choices; `answer-key.md` carries correctness, per-option rationale, and source lessons. Nothing is duplicated, and the two are cross-referenced by `Q<n>`. This split is what makes timed mode leak-proof — the simulator can render a whole exam without ever fetching the key, and does exactly that until you finish.
 - **`manifest.json` is a directory listing, not a config file.** Browsers can't enumerate a folder over `fetch()`, so the picker needs a manifest to know what exists. It's derived from disk by `scripts/sync-manifest.js` (a folder counts only if it contains an `exam.md`), never hand-edited, and a tracked pre-commit hook blocks any commit where it has drifted. That's why a freshly generated exam is selectable immediately: the skill writes the folder, then regenerates the index.
+- **The markdown formats are a parser contract, so they're enforced.** Breaking one rarely raises anything — the simulator quietly drops a question or renders an empty badge instead. `scripts/validate-exams.js` checks every registered exam against the contract (header lines, `Total` vs question count, sequential numbering, domain and subtopic labels, four choices, `Correct:` letters that point at a real choice, `exam.md` ↔ `answer-key.md` agreement) and exits non-zero on a violation. It runs in CI on every push and pull request, in the pre-commit hook, and as the generator skill's final self-check. See [`ExamGenerator/README.md`](ExamGenerator/README.md#validation) for the full rule list.
 - **`result.md` is the state store.** There's no progress database. Opening an exam does a `fetch()` probe for its `result.md`: found → your saved report is parsed back into a full review screen; not found → you get the mode prompt and start fresh. The presence of a file *is* the "already taken" flag. Consequently **Retake** doesn't reset a variable — it deletes the file, and the next probe misses.
 - **Results are written back to the repo, then ignored by it.** A finished run is saved straight into `GeneratedExams/<id>/result.md` via the File System Access API, with the granted directory handle cached in IndexedDB so you authorize once per browser. `.gitignore` excludes those files — personal scores stay local — with a single negation for `_sample/result.md`, which is a synthetic worked example that documents the format.
 - **The report format is a round-trip contract.** `result-md.js` holds both halves: `buildResultMarkdown()` writes the file and `parseResultReport()` reads it back. The shape isn't a report style you can restyle freely; the parser depends on it.
@@ -40,7 +42,7 @@ python -m http.server --directory ExamGenerator 5500
 
 Then open the printed localhost URL and load `ExamSimulator/index.html`.
 
-If you want finished runs written back to disk, also enable the pre-commit hook once per clone so a generated exam can never be committed with a stale manifest (git doesn't honor `.githooks/` until pointed there):
+If you plan to add exams, also enable the pre-commit hook once per clone — it re-derives `manifest.json` and validates every exam's format, so neither a stale index nor a broken exam can be committed (git doesn't honor `.githooks/` until pointed there):
 
 ```bash
 git config core.hooksPath .githooks
@@ -63,6 +65,7 @@ What it then does is mostly bookkeeping in service of one goal — questions tha
 3. **Plans before writing** — the subtopic list, the domain counts, and the correct letters are laid out and balanced across A–D up front, then the order is shuffled so the exam doesn't read as domain-by-domain blocks.
 4. **Audits option lengths.** This is the one that matters. The failure mode for generated exams is putting the justification in the correct option and leaving the distractors as bare assertions — which makes "always pick the longest choice" a winning strategy. The skill counts words per option, keeps the longest within ~1.25× the shortest, caps how often the longest option is the correct one, and pushes every "because…" clause into the answer key where it belongs.
 5. **Registers the id** by regenerating `manifest.json` from disk, which is what makes the exam appear in the picker.
+6. **Validates the result** with `scripts/validate-exams.js`, so the structural half of its self-check is machine-verified rather than asserted.
 
 File formats, the scoring model, and the manual authoring path are documented in [`ExamGenerator/README.md`](ExamGenerator/README.md).
 
@@ -95,6 +98,7 @@ The full blueprint — domain weights, the six exam scenarios, and how the exam 
 ├── .claude/skills/           Claude Code skill definitions
 ├── .agents/skills/           Codex-compatible skill definitions
 ├── scripts/sync-manifest.js  Regenerates the exam manifest from folders on disk
+├── scripts/validate-exams.js Checks every exam against the markdown format contract
 ├── .githooks/pre-commit      Blocks commits when the manifest is out of sync
 └── sources.md                Links to the course and the real exam
 ```
