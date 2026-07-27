@@ -26,6 +26,8 @@ function sortIds(ids) {
 }
 
 const ids = sortIds(findExamIds());
-fs.writeFileSync(MANIFEST_PATH, JSON.stringify(ids) + "\r\n");
+// LF, because that is how git stores the file. Writing CRLF here left a Linux checkout
+// permanently differing from the blob, so the pre-commit hook saw a change on every run.
+fs.writeFileSync(MANIFEST_PATH, JSON.stringify(ids) + "\n");
 
 console.log(`Wrote ${ids.length} id(s) to ${path.relative(process.cwd(), MANIFEST_PATH)}: ${ids.join(", ")}`);
