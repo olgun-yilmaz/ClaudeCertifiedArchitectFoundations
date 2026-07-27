@@ -350,9 +350,13 @@ function main() {
     process.exit(1);
   }
 
-  const expected = JSON.stringify(deriveManifest()) + "\r\n";
-  if (fs.readFileSync(MANIFEST_PATH, "utf8") !== expected) {
-    error(manifestFile, 1, "out of sync with the folders on disk — run `node scripts/sync-manifest.js`");
+  // Compare the parsed ids rather than the raw bytes. The file is stored with LF but
+  // checks out as CRLF wherever core.autocrlf is on, so a byte comparison would pass on
+  // Windows and fail on a Linux runner. What the simulator consumes is the parsed array,
+  // and that is what has to match the folders on disk.
+  const derived = deriveManifest();
+  if (JSON.stringify(ids) !== JSON.stringify(derived)) {
+    error(manifestFile, 1, `out of sync with the folders on disk — run \`node scripts/sync-manifest.js\` (expected ${JSON.stringify(derived)})`);
   }
 
   const allQuestions = [];
