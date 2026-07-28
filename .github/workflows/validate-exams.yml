@@ -5,7 +5,15 @@ name: Validate exams
 on:
   push:
     branches: [main]
+    paths:
+      - "ExamGenerator/GeneratedExams/**"
+      - "scripts/validate-exams.js"
+      - ".github/workflows/validate-exams.yml"
   pull_request:
+    paths:
+      - "ExamGenerator/GeneratedExams/**"
+      - "scripts/validate-exams.js"
+      - ".github/workflows/validate-exams.yml"
 
 jobs:
   validate:
